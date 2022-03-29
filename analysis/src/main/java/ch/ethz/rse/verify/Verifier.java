@@ -60,7 +60,19 @@ public class Verifier extends AVerifier {
 	}
 
 	protected void runNumericalAnalysis(VerificationProperty property) {
-		// TODO: FILL THIS OUT
+		// iterate over all methods of c
+		for (SootMethod m : c.getMethods()) {
+			if (m.isAbstract() || m.isNative() || m.isPhantom()) {
+				continue;
+			}
+
+			logger.debug("Analyzing method {}", m.getName());
+
+			// run numerical analysis
+			NumericalAnalysis analysis = new NumericalAnalysis(m, property, this.pointsTo);
+			this.numericalAnalysis.put(m, analysis);
+		}
+
 	}
 
 	@Override
