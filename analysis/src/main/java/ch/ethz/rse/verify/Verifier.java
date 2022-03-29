@@ -1,7 +1,9 @@
 package ch.ethz.rse.verify;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +49,11 @@ public class Verifier extends AVerifier {
 	private final PointsToInitializer pointsTo;
 
 	/**
+	 * list of already analyzed properties
+	 */
+	private Set<VerificationProperty> analyzedProperties;
+
+	/**
 	 * 
 	 * @param c class to verify
 	 */
@@ -54,12 +61,16 @@ public class Verifier extends AVerifier {
 		logger.debug("Analyzing {}", c.getName());
 
 		this.c = c;
+		// initialize analyzedProperty set
+		this.analyzedProperties = new HashSet<VerificationProperty>();
 
 		// pointer analysis
 		this.pointsTo = new PointsToInitializer(this.c);
 	}
 
 	protected void runNumericalAnalysis(VerificationProperty property) {
+		analyzedProperties.add(property);
+
 		// iterate over all methods of c
 		for (SootMethod m : c.getMethods()) {
 			if (m.isAbstract() || m.isNative() || m.isPhantom()) {
@@ -72,23 +83,58 @@ public class Verifier extends AVerifier {
 			NumericalAnalysis analysis = new NumericalAnalysis(m, property, this.pointsTo);
 			this.numericalAnalysis.put(m, analysis);
 		}
-
 	}
 
 	@Override
 	public boolean checkStartEndOrder() {
+		if (!analyzedProperties.contains(VerificationProperty.START_END_ORDER)) {
+			return false;
+		}
+
+		// iterate over all analyzed methods
+		for (SootMethod m : this.numericalAnalysis.keySet()) {
+			NumericalAnalysis analysis = this.numericalAnalysis.get(m);
+
+			// iterate over all units of method m
+			for (Unit u : m.getActiveBody().getUnits()) {
+				logger.debug(u.toString());
+
+				// TODO invert all ifs to have cleaner code
+
+				if (u instanceof JInvokeStmt) {
+					JInvokeStmt invokeStmt = (JInvokeStmt) u;
+					Value v = invokeStmt.getInvokeExpr();
+
+					if (v instanceof JSpecialInvokeExpr) {
+						JSpecialInvokeExpr specialInvokeExpr = (JSpecialInvokeExpr) v;
+						SootClass baseClass = specialInvokeExpr.getMethodRef().getDeclaringClass();
+
+						// baseClass ?= ch.ethz.rse.Event
+					}
+				}
+			}
+		}
+
 		// TODO: FILL THIS OUT
 		return true;
 	}
 
 	@Override
 	public boolean checkAfterStart() {
+		if (!analyzedProperties.contains(VerificationProperty.AFTER_START)) {
+			return false;
+		}
+
 		// TODO: FILL THIS OUT
 		return true;
 	}
 
 	@Override
 	public boolean checkBeforeEnd() {
+		if (!analyzedProperties.contains(VerificationProperty.BEFORE_END)) {
+			return false;
+		}
+
 		// TODO: FILL THIS OUT
 		return true;
 	}
