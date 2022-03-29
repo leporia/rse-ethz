@@ -54,7 +54,7 @@ if [ $# -eq 0 ]; then
 	# interactive mode
 	my_docker run \
 		--rm \
-		--net none \
+		--net host \
 		-it \
 		-v "$PROJECTROOT":/project \
 		--workdir="/project/analysis" \
@@ -62,7 +62,7 @@ if [ $# -eq 0 ]; then
 else # run command
 	my_docker run \
 		--rm \
-		--net none \
+		--net host \
 		-v "$PROJECTROOT":/project \
 		--workdir="/project/analysis" \
 		$IMAGE \
