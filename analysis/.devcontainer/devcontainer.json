@@ -1,0 +1,10 @@
+{
+	"image": "ethsrilab/rse-project:1.3",
+
+	// extensions to be installed when the container is created
+	"extensions": [
+		"vscjava.vscode-java-pack", // Java Extension Pack
+		"christian-kohler.path-intellisense", // autocomplete for filenames
+		"peterjausovec.vscode-docker" // Docker
+	],
+}

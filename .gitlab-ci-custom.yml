@@ -1,0 +1,7 @@
+# separate file allowing to customize the CI/CD configuration
+
+# we need a dummy test here as an empty file leads to errors
+custom-dummy-test:
+  stage: integration-tests
+  script:
+    - echo "This is a custom test."

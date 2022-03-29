@@ -1,0 +1,10 @@
+# eclipse, vscode, pycharm
+/**/.classpath
+/**/.project
+/**/.settings
+/**/__pycache__
+.idea
+
+# temporary files
+/**/*odp#
+

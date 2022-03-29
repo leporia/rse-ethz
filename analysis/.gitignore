@@ -1,0 +1,6 @@
+/target
+/sootOutput
+/logs
+/bin
+
+/hs_err_*.log

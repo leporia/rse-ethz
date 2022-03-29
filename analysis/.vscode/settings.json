@@ -1,0 +1,9 @@
+{
+    "java.test.config": [
+        {
+            "name": "Set env var",
+            "env" : {"LD_LIBRARY_PATH" : "/usr/local/lib"}
+        }
+    ],
+    "java.server.launchMode": "Standard"
+}
