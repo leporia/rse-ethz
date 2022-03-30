@@ -99,7 +99,15 @@ public class Verifier extends AVerifier {
 
 			// iterate over all units of method m
 			for (Unit u : m.getActiveBody().getUnits()) {
-				//logger.debug(u.toString());
+				List<NumericalStateWrapper> flow = analysis.getBranchFlowAfter(u);
+				NumericalStateWrapper ff = analysis.getFallFlowAfter(u);
+				NumericalStateWrapper fb = analysis.getFlowBefore(u);
+
+				logger.debug(u.toString());
+				logger.debug(flow.toString());
+				logger.debug(ff.toString());
+				logger.debug(fb.toString());
+				logger.debug("==================");
 
 				if (!(u instanceof JInvokeStmt)) {
 					continue;
@@ -126,7 +134,7 @@ public class Verifier extends AVerifier {
 
 				if (!(end instanceof IntConstant)) {
 					logger.error("Unimplemented: End of event is not an int constant");
-					continue;
+					return false;
 				}
 
 				int end_int = ((IntConstant) end).value;
