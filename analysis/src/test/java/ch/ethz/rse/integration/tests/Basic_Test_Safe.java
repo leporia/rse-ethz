@@ -8,7 +8,7 @@ import ch.ethz.rse.Event;
 // BEFORE_END SAFE
 
 public class Basic_Test_Safe {
-
+	// note that in theory the following code should be in a separate class
 	public static void m1() {
 		Event e = new Event(2, 4);
 		e.switchLights(3);

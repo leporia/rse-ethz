@@ -3,6 +3,7 @@ package ch.ethz.rse.verify;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import soot.Value;
 import soot.jimple.internal.JInvokeStmt;
 import soot.jimple.internal.JSpecialInvokeExpr;
 import soot.jimple.internal.JVirtualInvokeExpr;
+import soot.jimple.IntConstant;
 import soot.toolkits.graph.UnitGraph;
 
 /**
@@ -97,20 +99,40 @@ public class Verifier extends AVerifier {
 
 			// iterate over all units of method m
 			for (Unit u : m.getActiveBody().getUnits()) {
-				logger.debug(u.toString());
+				//logger.debug(u.toString());
 
-				// TODO invert all ifs to have cleaner code
+				if (!(u instanceof JInvokeStmt)) {
+					continue;
+				}
 
-				if (u instanceof JInvokeStmt) {
-					JInvokeStmt invokeStmt = (JInvokeStmt) u;
-					Value v = invokeStmt.getInvokeExpr();
+				JInvokeStmt invokeStmt = (JInvokeStmt) u;
+				Value v = invokeStmt.getInvokeExpr();
 
-					if (v instanceof JSpecialInvokeExpr) {
-						JSpecialInvokeExpr specialInvokeExpr = (JSpecialInvokeExpr) v;
-						SootClass baseClass = specialInvokeExpr.getMethodRef().getDeclaringClass();
+				if (!(v instanceof JSpecialInvokeExpr)) {
+					continue;
+				}
 
-						// baseClass ?= ch.ethz.rse.Event
-					}
+				JSpecialInvokeExpr specialInvokeExpr = (JSpecialInvokeExpr) v;
+				SootClass baseClass = specialInvokeExpr.getMethodRef().getDeclaringClass();
+
+				if (!baseClass.getName().equals(Constants.EventClassName)) {
+					continue;
+				}
+
+				// first argument is always an int constant
+				int start = ((IntConstant) specialInvokeExpr.getArg(0)).value;
+
+				Value end = specialInvokeExpr.getArg(1);
+
+				if (!(end instanceof IntConstant)) {
+					logger.error("Unimplemented: End of event is not an int constant");
+					continue;
+				}
+
+				int end_int = ((IntConstant) end).value;
+
+				if (start > end_int) {
+					return false;
 				}
 			}
 		}
