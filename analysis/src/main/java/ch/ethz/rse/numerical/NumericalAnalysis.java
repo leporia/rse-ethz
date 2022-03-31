@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import apron.Abstract1;
 import apron.ApronException;
 import apron.Environment;
+import apron.Interval;
 import apron.Manager;
 import apron.MpqScalar;
 import apron.Polka;
@@ -20,6 +21,7 @@ import apron.Texpr1CstNode;
 import apron.Texpr1Intern;
 import apron.Texpr1Node;
 import apron.Texpr1VarNode;
+import apron.Var;
 import ch.ethz.rse.VerificationProperty;
 import ch.ethz.rse.pointer.EventInitializer;
 import ch.ethz.rse.pointer.PointsToInitializer;
@@ -306,8 +308,30 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 
 	// returns state of in after assignment
 	private void handleDef(NumericalStateWrapper outWrapper, Value left, Value right) throws ApronException {
-		// TODO: FILL THIS OUT
+		Abstract1 curr = outWrapper.get();
+
+		String left_name = ((JimpleLocal) left).getName();
+		Texpr1Intern right_intern = new Texpr1Intern(env, compileExpression(right));
+
+		Abstract1 next = curr.assignCopy(man, left_name, right_intern, curr);
+
+		outWrapper.set(next);
 	}
 
 	// TODO: MAYBE FILL THIS OUT: add convenience methods
+
+	private Texpr1Node compileExpression(Value expr) {
+		// TODO complete this
+		if (expr instanceof IntConstant) {
+			int int_value = ((IntConstant) expr).value;
+			return new Texpr1CstNode(new MpqScalar(int_value));
+		} else if (expr instanceof JMulExpr) {
+			JMulExpr mul_expr = (JMulExpr) expr;
+			Texpr1Node op1 = compileExpression(mul_expr.getOp1());
+			Texpr1Node op2 = compileExpression(mul_expr.getOp2());
+         	return new Texpr1BinNode(Texpr1BinNode.OP_MUL, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+		} else {
+			throw new RuntimeException("Unhandled expression: " + expr.toString());
+		}
+	}
 }

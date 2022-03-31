@@ -15,7 +15,9 @@ import soot.IntegerType;
 import soot.Local;
 import soot.PointsToAnalysis;
 import soot.SootMethod;
+import soot.Unit;
 import soot.Value;
+import soot.jimple.DefinitionStmt;
 import soot.jimple.ParameterRef;
 import soot.jimple.internal.JimpleLocal;
 import soot.util.Chain;
@@ -51,9 +53,25 @@ public class EnvironmentGenerator {
 		this.method = method;
 		this.pointsTo = pointsTo;
 
-		// populate this.ints
+		// TODO probably need to do something with pointsTo
 
-		// TODO: FILL THIS OUT
+		for (Unit u : method.getActiveBody().getUnits()) {
+			logger.debug(u.toString());
+
+			if (!(u instanceof DefinitionStmt)) {
+				continue;
+			}
+
+			DefinitionStmt sd = (DefinitionStmt) u;
+			Value left = sd.getLeftOp();
+
+			if (!(left instanceof JimpleLocal)) {
+				continue;
+			}
+
+			JimpleLocal local = (JimpleLocal) left;
+			ints.add(local.getName());
+		}
 
 		String ints_arr[] = Iterables.toArray(this.ints, String.class);
 		

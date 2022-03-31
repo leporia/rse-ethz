@@ -10,9 +10,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import apron.MpqScalar;
+import apron.Tcons1;
+import apron.Texpr1BinNode;
 import apron.Texpr1CstNode;
 import apron.Texpr1Node;
 import apron.Texpr1VarNode;
+import apron.Abstract1;
+import apron.ApronException;
+import apron.Environment;
+import apron.Manager;
 import ch.ethz.rse.VerificationProperty;
 import ch.ethz.rse.numerical.NumericalAnalysis;
 import ch.ethz.rse.numerical.NumericalStateWrapper;
@@ -29,6 +35,7 @@ import soot.Value;
 import soot.jimple.internal.JInvokeStmt;
 import soot.jimple.internal.JSpecialInvokeExpr;
 import soot.jimple.internal.JVirtualInvokeExpr;
+import soot.jimple.internal.JimpleLocal;
 import soot.jimple.IntConstant;
 import soot.toolkits.graph.UnitGraph;
 
@@ -93,22 +100,22 @@ public class Verifier extends AVerifier {
 			return false;
 		}
 
+		// TODO this should be done in the PointsToInitializer
 		// iterate over all analyzed methods
 		for (SootMethod m : this.numericalAnalysis.keySet()) {
 			NumericalAnalysis analysis = this.numericalAnalysis.get(m);
 
 			// iterate over all units of method m
 			for (Unit u : m.getActiveBody().getUnits()) {
-				List<NumericalStateWrapper> flow = analysis.getBranchFlowAfter(u);
-				NumericalStateWrapper ff = analysis.getFallFlowAfter(u);
-				NumericalStateWrapper fb = analysis.getFlowBefore(u);
+				List<NumericalStateWrapper> br_flow = analysis.getBranchFlowAfter(u);
+				NumericalStateWrapper after_flow = analysis.getFallFlowAfter(u);
 
 				logger.debug(u.toString());
-				logger.debug(flow.toString());
-				logger.debug(ff.toString());
-				logger.debug(fb.toString());
+				logger.debug(br_flow.toString());
+				logger.debug(after_flow.toString());
 				logger.debug("==================");
 
+				// it is probably wrong to do the check here because it is already done in NumericalAnalysis
 				if (!(u instanceof JInvokeStmt)) {
 					continue;
 				}
@@ -132,20 +139,41 @@ public class Verifier extends AVerifier {
 
 				Value end = specialInvokeExpr.getArg(1);
 
-				if (!(end instanceof IntConstant)) {
-					logger.error("Unimplemented: End of event is not an int constant");
+				if (end instanceof IntConstant) {
+					int end_int = ((IntConstant) end).value;
+
+					return start <= end_int;
+				} else if (end instanceof JimpleLocal) {
+					Abstract1 abstr = after_flow.get();
+					Environment env = abstr.getEnvironment();
+					Manager man = abstr.getCreationManager();
+
+					String end_var = ((JimpleLocal) end).getName();
+					Texpr1Node end_node = new Texpr1VarNode(end_var);
+
+					Texpr1CstNode start_node =  new Texpr1CstNode(new MpqScalar(start));
+
+					// end - start
+					Texpr1Node end_minus_start = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, end_node, start_node);
+					
+					// 0 <= end - start 
+					Tcons1 constraint = new Tcons1(env, Tcons1.SUPEQ, end_minus_start);
+
+					try {
+						return abstr.satisfy(man, constraint);
+					} catch (ApronException e) {
+						return false;
+					}
+
+				} else {
+					// TODO we have to support arrays? or other things?
+					logger.error("Unknown end value {}", end);
 					return false;
 				}
 
-				int end_int = ((IntConstant) end).value;
-
-				if (start > end_int) {
-					return false;
-				}
 			}
 		}
 
-		// TODO: FILL THIS OUT
 		return true;
 	}
 

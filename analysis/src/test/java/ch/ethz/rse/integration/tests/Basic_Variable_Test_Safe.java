@@ -9,8 +9,8 @@ import ch.ethz.rse.Event;
 
 public class Basic_Variable_Test_Safe {
 	public static void m1() {
-		int i = 2;
-		Event e = new Event(3, i*2);
+		int k = 2;
+		Event e = new Event(3, k*2);
 		e.switchLights(3);
 	}
 }
