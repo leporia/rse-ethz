@@ -308,6 +308,11 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 
 	// returns state of in after assignment
 	private void handleDef(NumericalStateWrapper outWrapper, Value left, Value right) throws ApronException {
+		// skip function paramenters because they are unknown
+		if (right instanceof ParameterRef) {
+			return;
+		}
+
 		Abstract1 curr = outWrapper.get();
 
 		String left_name = ((JimpleLocal) left).getName();
@@ -330,6 +335,8 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			Texpr1Node op1 = compileExpression(mul_expr.getOp1());
 			Texpr1Node op2 = compileExpression(mul_expr.getOp2());
          	return new Texpr1BinNode(Texpr1BinNode.OP_MUL, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+		} else if (expr instanceof ParameterRef) {
+			throw new RuntimeException("Impossible to be here");
 		} else {
 			throw new RuntimeException("Unhandled expression: " + expr.toString());
 		}

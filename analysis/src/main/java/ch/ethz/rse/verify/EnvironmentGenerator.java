@@ -56,8 +56,6 @@ public class EnvironmentGenerator {
 		// TODO probably need to do something with pointsTo
 
 		for (Unit u : method.getActiveBody().getUnits()) {
-			logger.debug(u.toString());
-
 			if (!(u instanceof DefinitionStmt)) {
 				continue;
 			}
@@ -77,6 +75,7 @@ public class EnvironmentGenerator {
 		
 		String reals[] = {}; // we are not analyzing real numbers
 		this.env = new Environment(ints_arr, reals);
+		logger.debug(this.env.toString());
 	}
 
 	public Environment getEnvironment() {
