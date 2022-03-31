@@ -100,44 +100,16 @@ public class Verifier extends AVerifier {
 			return false;
 		}
 
-		// TODO this should be done in the PointsToInitializer
 		// iterate over all analyzed methods
 		for (SootMethod m : this.numericalAnalysis.keySet()) {
 			NumericalAnalysis analysis = this.numericalAnalysis.get(m);
 
-			// iterate over all units of method m
-			for (Unit u : m.getActiveBody().getUnits()) {
-				List<NumericalStateWrapper> br_flow = analysis.getBranchFlowAfter(u);
-				NumericalStateWrapper after_flow = analysis.getFallFlowAfter(u);
+			for (EventInitializer init : pointsTo.getInitializers(m)) {
+				List<NumericalStateWrapper> br_flow = analysis.getBranchFlowAfter(init.getStatement());
+				NumericalStateWrapper after_flow = analysis.getFallFlowAfter(init.getStatement());
 
-				logger.debug(u.toString());
-				logger.debug(br_flow.toString());
-				logger.debug(after_flow.toString());
-				logger.debug("==================");
-
-				// it is probably wrong to do the check here because it is already done in NumericalAnalysis
-				if (!(u instanceof JInvokeStmt)) {
-					continue;
-				}
-
-				JInvokeStmt invokeStmt = (JInvokeStmt) u;
-				Value v = invokeStmt.getInvokeExpr();
-
-				if (!(v instanceof JSpecialInvokeExpr)) {
-					continue;
-				}
-
-				JSpecialInvokeExpr specialInvokeExpr = (JSpecialInvokeExpr) v;
-				SootClass baseClass = specialInvokeExpr.getMethodRef().getDeclaringClass();
-
-				if (!baseClass.getName().equals(Constants.EventClassName)) {
-					continue;
-				}
-
-				// first argument is always an int constant
-				int start = ((IntConstant) specialInvokeExpr.getArg(0)).value;
-
-				Value end = specialInvokeExpr.getArg(1);
+				Value end = init.getStatement().getInvokeExpr().getArg(1);
+				int start = init.start;
 
 				if (end instanceof IntConstant) {
 					int end_int = ((IntConstant) end).value;
@@ -170,7 +142,6 @@ public class Verifier extends AVerifier {
 					logger.error("Unknown end value {}", end);
 					return false;
 				}
-
 			}
 		}
 

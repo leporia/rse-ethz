@@ -61,6 +61,7 @@ public class PointsToInitializer {
 	}
 
 	private void analyzeAllInitializers() {
+		int id_counter = 0;
 		for (SootMethod method : this.c.getMethods()) {
 
 			if (method.getName().contains("<init>")) {
@@ -68,8 +69,36 @@ public class PointsToInitializer {
 				continue;
 			}
 
+			// TODO considerate also pointers to already initialized objects
+
 			// populate data structures perMethod and initializers
-			// TODO: FILL THIS OUT
+			for (Unit u : method.getActiveBody().getUnits()) {
+				if (!(u instanceof JInvokeStmt)) {
+					continue;
+				}
+
+				JInvokeStmt invokeStmt = (JInvokeStmt) u;
+				Value v = invokeStmt.getInvokeExpr();
+
+				if (!(v instanceof JSpecialInvokeExpr)) {
+					continue;
+				}
+
+				JSpecialInvokeExpr specialInvokeExpr = (JSpecialInvokeExpr) v;
+				SootClass baseClass = specialInvokeExpr.getMethodRef().getDeclaringClass();
+
+				if (!baseClass.getName().equals(Constants.EventClassName)) {
+					continue;
+				}
+
+				int start = ((IntConstant) specialInvokeExpr.getArg(0)).value;
+				
+				EventInitializer initializer = new EventInitializer(invokeStmt, id_counter, start);
+				id_counter++;
+
+				perMethod.put(method, initializer);
+			}
+
 		}
 	}
 
