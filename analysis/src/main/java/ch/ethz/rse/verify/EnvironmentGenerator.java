@@ -68,7 +68,9 @@ public class EnvironmentGenerator {
 			}
 
 			JimpleLocal local = (JimpleLocal) left;
-			ints.add(local.getName());
+			if (!ints.contains(local.getName())) {
+				ints.add(local.getName());
+			}
 		}
 
 		String ints_arr[] = Iterables.toArray(this.ints, String.class);

@@ -264,6 +264,10 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 				// handle if
 
 				// TODO: FILL THIS OUT
+				JIfStmt ifStmt = (JIfStmt) s;
+				Value condition = ifStmt.getCondition();
+				Tcons1 constr = compileCondition(condition);
+				logger.debug(constr.toString());
 
 			} else if (s instanceof JInvokeStmt) {
 				// handle invocations
@@ -349,9 +353,89 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			Texpr1Node op2 = compileExpression(sub_expr.getOp2());
 			return new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 		} else if (expr instanceof ParameterRef) {
+			// impossible because it is set to a local variable at the beginning
 			throw new RuntimeException("Impossible to be here");
 		} else {
 			throw new RuntimeException("Unhandled expression: " + expr.toString());
+		}
+	}
+
+	private Tcons1 compileCondition(Value expr) {
+		// TODO check if it puts = in the right places
+		if (expr instanceof JEqExpr) {
+			// a == b
+			JEqExpr eq_expr = (JEqExpr) expr;
+			Texpr1Node op1 = compileExpression(eq_expr.getOp1());
+			Texpr1Node op2 = compileExpression(eq_expr.getOp2());
+			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+
+			Tcons1 cons = new Tcons1(env, Tcons1.EQ, result);
+
+			return cons;
+		} else if (expr instanceof JNeExpr) {
+			// a != b
+			JNeExpr ne_expr = (JNeExpr) expr;
+			Texpr1Node op1 = compileExpression(ne_expr.getOp1());
+			Texpr1Node op2 = compileExpression(ne_expr.getOp2());
+			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+
+			Tcons1 cons = new Tcons1(env, Tcons1.DISEQ, result);
+
+			return cons;
+		} else if (expr instanceof JGtExpr) {
+			// a > b
+			JGtExpr gt_expr = (JGtExpr) expr;
+			Texpr1Node op1 = compileExpression(gt_expr.getOp1());
+			Texpr1Node op2 = compileExpression(gt_expr.getOp2());
+
+			// a - b
+			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+
+			// a - b > 0
+			Tcons1 cons = new Tcons1(env, Tcons1.SUP, result);
+
+			return cons;
+		} else if (expr instanceof JGeExpr) {
+			// a >= b
+			JGeExpr ge_expr = (JGeExpr) expr;
+			Texpr1Node op1 = compileExpression(ge_expr.getOp1());
+			Texpr1Node op2 = compileExpression(ge_expr.getOp2());
+
+			// a - b
+			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+
+			// a - b >= 0
+			Tcons1 cons = new Tcons1(env, Tcons1.SUPEQ, result);
+
+			return cons;
+		} else if (expr instanceof JLtExpr) {
+			// a < b
+			JLtExpr lt_expr = (JLtExpr) expr;
+			Texpr1Node op1 = compileExpression(lt_expr.getOp1());
+			Texpr1Node op2 = compileExpression(lt_expr.getOp2());
+
+			// b - a
+			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
+
+			// 0 < b - a
+			Tcons1 cons = new Tcons1(env, Tcons1.SUP, result);
+
+			return cons;
+		} else if (expr instanceof JLeExpr) {
+			// a <= b
+			JLeExpr le_expr = (JLeExpr) expr;
+			Texpr1Node op1 = compileExpression(le_expr.getOp1());
+			Texpr1Node op2 = compileExpression(le_expr.getOp2());
+
+			// b - a
+			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
+
+			// 0 <= b - a
+			Tcons1 cons = new Tcons1(env, Tcons1.SUPEQ, result);
+
+			return cons;
+		} else {
+			throw new RuntimeException("Unhandled condition: " + expr.toString());
 		}
 	}
 }
