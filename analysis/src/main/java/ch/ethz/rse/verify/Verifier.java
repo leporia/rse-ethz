@@ -159,7 +159,68 @@ public class Verifier extends AVerifier {
 			return false;
 		}
 
-		// TODO: FILL THIS OUT
+		for (SootMethod m : this.numericalAnalysis.keySet()) {
+			NumericalAnalysis analysis = this.numericalAnalysis.get(m);
+
+			for (JVirtualInvokeExpr invoke : pointsTo.getVirtualInvokes(m)) {
+				Value base = invoke.getBase();
+				if (!(base instanceof Local)) {
+					throw new RuntimeException("Unknown base value " + base);
+				}
+
+				Local base_local = (Local) base;
+				List <EventInitializer> inits = pointsTo.pointsTo(base_local);
+				Value time = invoke.getArg(0);
+
+				for (EventInitializer init : inits) {
+					List<NumericalStateWrapper> br_flow = analysis.getBranchFlowAfter(init.getStatement());
+					NumericalStateWrapper after_flow = analysis.getFallFlowAfter(init.getStatement());
+
+					Abstract1 abstr = after_flow.get();
+					Environment env = abstr.getEnvironment();
+					Manager man = abstr.getCreationManager();
+
+					Value end = init.getStatement().getInvokeExpr().getArg(1);
+
+					Texpr1Node time_node;	
+					Texpr1Node end_node;	
+
+					if (time instanceof IntConstant) {
+						time_node = new Texpr1CstNode(new MpqScalar(((IntConstant) time).value));	
+					} else if (time instanceof JimpleLocal) {
+						String time_name = ((JimpleLocal) time).getName();
+						time_node = new Texpr1VarNode(time_name);
+					} else {
+						throw new RuntimeException("Unknown time value " + time);
+					}
+
+					if (end instanceof IntConstant) {
+						end_node = new Texpr1CstNode(new MpqScalar(((IntConstant) end).value));	
+					} else if (end instanceof JimpleLocal) {
+						String end_name = ((JimpleLocal) end).getName();
+						end_node = new Texpr1VarNode(end_name);
+					} else {
+						throw new RuntimeException("Unknown end value " + end);
+					}
+
+					// end - time
+					Texpr1Node end_minus_time = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, end_node, time_node);
+					
+					// 0 <= end - time
+					Tcons1 constraint = new Tcons1(env, Tcons1.SUPEQ, end_minus_time);
+
+					try {
+						if (!abstr.satisfy(man, constraint)) {
+							return false;
+						}
+					} catch (ApronException e) {
+						return false;
+					}
+
+				}
+			}
+		}
+
 		return true;
 	}
 
