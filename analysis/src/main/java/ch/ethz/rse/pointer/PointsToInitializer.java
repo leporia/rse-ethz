@@ -95,15 +95,33 @@ public class PointsToInitializer {
 						continue;
 					}
 
+					// TODO
+					// idk if this is the right way to get the node reference
+					// probabily the right way is to get it directly from the object
+					if (!(specialInvokeExpr.getBase() instanceof Local)) {
+						throw new RuntimeException("Unexpected base class for special invoke expression: " + specialInvokeExpr);
+					}
+					Local base = (Local) specialInvokeExpr.getBase();
+					// because there should be only one node after we define the object
+					Node baseNode = this.pointsTo.getNodes(base).iterator().next();
+
 					int start = ((IntConstant) specialInvokeExpr.getArg(0)).value;
 					
 					EventInitializer initializer = new EventInitializer(invokeStmt, id_counter, start);
 					id_counter++;
 
 					perMethod.put(method, initializer);
+					initializers.put(baseNode, initializer);
 				} else if (v instanceof JVirtualInvokeExpr) {
 					// it is a call to an object
 					JVirtualInvokeExpr virtualInvokeExpr = (JVirtualInvokeExpr) v;
+
+					// check is the right class
+					if (!(virtualInvokeExpr.getBase().getType().toString().equals(Constants.EventClassName))) {
+						logger.debug("is false");
+						continue;
+					}
+
 					virtualInvokes.put(method, virtualInvokeExpr);
 				}
 

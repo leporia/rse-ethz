@@ -110,36 +110,8 @@ public class Verifier extends AVerifier {
 
 				Value end = init.getStatement().getInvokeExpr().getArg(1);
 				int start = init.start;
-
-				if (end instanceof IntConstant) {
-					int end_int = ((IntConstant) end).value;
-
-					return start <= end_int;
-				} else if (end instanceof JimpleLocal) {
-					Abstract1 abstr = after_flow.get();
-					Environment env = abstr.getEnvironment();
-					Manager man = abstr.getCreationManager();
-
-					String end_var = ((JimpleLocal) end).getName();
-					Texpr1Node end_node = new Texpr1VarNode(end_var);
-
-					Texpr1CstNode start_node =  new Texpr1CstNode(new MpqScalar(start));
-
-					// end - start
-					Texpr1Node end_minus_start = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, end_node, start_node);
-					
-					// 0 <= end - start 
-					Tcons1 constraint = new Tcons1(env, Tcons1.SUPEQ, end_minus_start);
-
-					try {
-						return abstr.satisfy(man, constraint);
-					} catch (ApronException e) {
-						return false;
-					}
-
-				} else {
-					// TODO we have to support arrays? or other things?
-					logger.error("Unknown end value {}", end);
+				
+				if (!(intValueDifference(start, end, after_flow))) {
 					return false;
 				}
 			}
@@ -154,7 +126,30 @@ public class Verifier extends AVerifier {
 			return false;
 		}
 
-		// TODO: FILL THIS OUT
+		for (SootMethod m : this.numericalAnalysis.keySet()) {
+			NumericalAnalysis analysis = this.numericalAnalysis.get(m);
+
+			for (JVirtualInvokeExpr invoke : pointsTo.getVirtualInvokes(m)) {
+				Value base = invoke.getBase();
+				if (!(base instanceof Local)) {
+					throw new RuntimeException("Unknown base value " + base);
+				}
+
+				Local base_local = (Local) base;
+				List <EventInitializer> inits = pointsTo.pointsTo(base_local);
+				Value time = invoke.getArg(0);
+
+				for (EventInitializer init : inits) {
+					List<NumericalStateWrapper> br_flow = analysis.getBranchFlowAfter(init.getStatement());
+					NumericalStateWrapper after_flow = analysis.getFallFlowAfter(init.getStatement());
+
+					if (!(intValueDifference(init.start, time, after_flow))) {
+						return false;
+					}
+				}
+			}
+		}
+
 		return true;
 	}
 
@@ -169,5 +164,38 @@ public class Verifier extends AVerifier {
 	}
 
 	// TODO: MAYBE FILL THIS OUT: add convenience methods
+
+	private boolean intValueDifference(int a, Value b, NumericalStateWrapper state) {
+		if (b instanceof IntConstant) {
+			int b_int = ((IntConstant) b).value;
+
+			return a <= b_int;
+		} else if (b instanceof JimpleLocal) {
+			Abstract1 abstr = state.get();
+			Environment env = abstr.getEnvironment();
+			Manager man = abstr.getCreationManager();
+
+			String b_var = ((JimpleLocal) b).getName();
+			Texpr1Node b_node = new Texpr1VarNode(b_var);
+
+			Texpr1CstNode a_node =  new Texpr1CstNode(new MpqScalar(a));
+
+			// b - a
+			Texpr1Node b_minus_a = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, b_node, a_node);
+			
+			// 0 <= b - a
+			Tcons1 constraint = new Tcons1(env, Tcons1.SUPEQ, b_minus_a);
+
+			try {
+				return abstr.satisfy(man, constraint);
+			} catch (ApronException e) {
+				return false;
+			}
+
+		} else {
+			// TODO we have to support arrays? or other things?
+			throw new RuntimeException("Unknown end value " + b);
+		}
+	}
 
 }
