@@ -335,6 +335,16 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			Texpr1Node op1 = compileExpression(mul_expr.getOp1());
 			Texpr1Node op2 = compileExpression(mul_expr.getOp2());
          	return new Texpr1BinNode(Texpr1BinNode.OP_MUL, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+		} else if (expr instanceof JAddExpr) {
+			JAddExpr add_expr = (JAddExpr) expr;
+			Texpr1Node op1 = compileExpression(add_expr.getOp1());
+			Texpr1Node op2 = compileExpression(add_expr.getOp2());
+			return new Texpr1BinNode(Texpr1BinNode.OP_ADD, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+		} else if (expr instanceof JSubExpr) {
+			JSubExpr sub_expr = (JSubExpr) expr;
+			Texpr1Node op1 = compileExpression(sub_expr.getOp1());
+			Texpr1Node op2 = compileExpression(sub_expr.getOp2());
+			return new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 		} else if (expr instanceof ParameterRef) {
 			throw new RuntimeException("Impossible to be here");
 		} else {
