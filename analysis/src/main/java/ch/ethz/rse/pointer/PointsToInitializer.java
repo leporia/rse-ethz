@@ -22,6 +22,7 @@ import soot.jimple.IntConstant;
 import soot.jimple.InvokeExpr;
 import soot.jimple.internal.JInvokeStmt;
 import soot.jimple.internal.JSpecialInvokeExpr;
+import soot.jimple.internal.JVirtualInvokeExpr;
 import soot.jimple.spark.pag.Node;
 
 /**
@@ -52,6 +53,11 @@ public class PointsToInitializer {
 	 */
 	private final Multimap<SootMethod, EventInitializer> perMethod = HashMultimap.create();
 
+	/**
+	 * All {@link JVirtualInvokeExpr}s, keyed by method
+	 */
+	private final Multimap<SootMethod, JVirtualInvokeExpr> virtualInvokes = HashMultimap.create();
+
 	public PointsToInitializer(SootClass c) {
 		this.c = c;
 		logger.debug("Running points-to analysis on " + c.getName());
@@ -80,23 +86,27 @@ public class PointsToInitializer {
 				JInvokeStmt invokeStmt = (JInvokeStmt) u;
 				Value v = invokeStmt.getInvokeExpr();
 
-				if (!(v instanceof JSpecialInvokeExpr)) {
-					continue;
+				if (v instanceof JSpecialInvokeExpr) {
+					// it is a class constructor call
+					JSpecialInvokeExpr specialInvokeExpr = (JSpecialInvokeExpr) v;
+					SootClass baseClass = specialInvokeExpr.getMethodRef().getDeclaringClass();
+
+					if (!baseClass.getName().equals(Constants.EventClassName)) {
+						continue;
+					}
+
+					int start = ((IntConstant) specialInvokeExpr.getArg(0)).value;
+					
+					EventInitializer initializer = new EventInitializer(invokeStmt, id_counter, start);
+					id_counter++;
+
+					perMethod.put(method, initializer);
+				} else if (v instanceof JVirtualInvokeExpr) {
+					// it is a call to an object
+					JVirtualInvokeExpr virtualInvokeExpr = (JVirtualInvokeExpr) v;
+					virtualInvokes.put(method, virtualInvokeExpr);
 				}
 
-				JSpecialInvokeExpr specialInvokeExpr = (JSpecialInvokeExpr) v;
-				SootClass baseClass = specialInvokeExpr.getMethodRef().getDeclaringClass();
-
-				if (!baseClass.getName().equals(Constants.EventClassName)) {
-					continue;
-				}
-
-				int start = ((IntConstant) specialInvokeExpr.getArg(0)).value;
-				
-				EventInitializer initializer = new EventInitializer(invokeStmt, id_counter, start);
-				id_counter++;
-
-				perMethod.put(method, initializer);
 			}
 
 		}
@@ -106,6 +116,10 @@ public class PointsToInitializer {
 
 	public Collection<EventInitializer> getInitializers(SootMethod method) {
 		return this.perMethod.get(method);
+	}
+
+	public Collection<JVirtualInvokeExpr> getVirtualInvokes(SootMethod method) {
+		return this.virtualInvokes.get(method);
 	}
 
 	public List<EventInitializer> pointsTo(Local base) {
