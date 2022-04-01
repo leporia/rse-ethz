@@ -330,6 +330,9 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 		if (expr instanceof IntConstant) {
 			int int_value = ((IntConstant) expr).value;
 			return new Texpr1CstNode(new MpqScalar(int_value));
+		} else if (expr instanceof JimpleLocal) {
+			String name = ((JimpleLocal) expr).getName();
+			return new Texpr1VarNode(name);
 		} else if (expr instanceof JMulExpr) {
 			JMulExpr mul_expr = (JMulExpr) expr;
 			Texpr1Node op1 = compileExpression(mul_expr.getOp1());

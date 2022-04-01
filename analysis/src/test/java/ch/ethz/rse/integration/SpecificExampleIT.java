@@ -21,9 +21,9 @@ public class SpecificExampleIT {
 	 */
 	@Test
 	void specificTest() {
-		String packageName = "ch.ethz.rse.integration.tests.Basic_Variable_Test_Unsafe";
+		String packageName = "ch.ethz.rse.integration.tests.Basic_Variable_Test_Unsafe_Before";
 		VerificationProperty verificationTask = VerificationProperty.BEFORE_END;
-		boolean expectedIsSafe = true;
+		boolean expectedIsSafe = false;
 		VerificationTestCase t = new VerificationTestCase(packageName, verificationTask, expectedIsSafe);
 		SpecificExampleIT.testOnExample(t);
 	}
