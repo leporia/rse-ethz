@@ -56,13 +56,13 @@ public class VerificationTestCaseCollector {
 	public static List<VerificationTestCase> getTests() throws IOException {
 		// get directory of tests
 		String examplesPath = System.getProperty("user.dir") + "/src/test/java/" + testPackage.replace(".", File.separator);
-		File examples_dir = new File(examplesPath);
+		File examplesDir = new File(examplesPath);
 
 		// collect tasks
 		List<VerificationTestCase> tasks = new LinkedList<VerificationTestCase>();
 		boolean disableOthers = false;
 
-		for (File f : examples_dir.listFiles()) {
+		for (File f : examplesDir.listFiles()) {
 			// skip directories
 			if (f.isDirectory()) {
 				continue;

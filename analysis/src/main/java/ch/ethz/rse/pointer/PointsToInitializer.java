@@ -67,7 +67,7 @@ public class PointsToInitializer {
 	}
 
 	private void analyzeAllInitializers() {
-		int id_counter = 0;
+		int idCounter = 0;
 		for (SootMethod method : this.c.getMethods()) {
 
 			if (method.getName().contains("<init>")) {
@@ -107,8 +107,8 @@ public class PointsToInitializer {
 
 					int start = ((IntConstant) specialInvokeExpr.getArg(0)).value;
 					
-					EventInitializer initializer = new EventInitializer(invokeStmt, id_counter, start);
-					id_counter++;
+					EventInitializer initializer = new EventInitializer(invokeStmt, idCounter, start);
+					idCounter++;
 
 					perMethod.put(method, initializer);
 					initializers.put(baseNode, initializer);

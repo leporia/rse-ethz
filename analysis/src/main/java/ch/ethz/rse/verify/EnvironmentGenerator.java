@@ -73,10 +73,10 @@ public class EnvironmentGenerator {
 			}
 		}
 
-		String ints_arr[] = Iterables.toArray(this.ints, String.class);
+		String intsArr[] = Iterables.toArray(this.ints, String.class);
 		
 		String reals[] = {}; // we are not analyzing real numbers
-		this.env = new Environment(ints_arr, reals);
+		this.env = new Environment(intsArr, reals);
 		logger.debug(this.env.toString());
 	}
 

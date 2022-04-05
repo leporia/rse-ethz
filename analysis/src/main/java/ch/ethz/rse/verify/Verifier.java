@@ -105,13 +105,13 @@ public class Verifier extends AVerifier {
 			NumericalAnalysis analysis = this.numericalAnalysis.get(m);
 
 			for (EventInitializer init : pointsTo.getInitializers(m)) {
-				List<NumericalStateWrapper> br_flow = analysis.getBranchFlowAfter(init.getStatement());
-				NumericalStateWrapper after_flow = analysis.getFallFlowAfter(init.getStatement());
+				List<NumericalStateWrapper> brFlow = analysis.getBranchFlowAfter(init.getStatement());
+				NumericalStateWrapper afterFlow = analysis.getFallFlowAfter(init.getStatement());
 
 				Value end = init.getStatement().getInvokeExpr().getArg(1);
 				int start = init.start;
 				
-				if (!(intValueDifference(start, end, after_flow))) {
+				if (!(intValueDifference(start, end, afterFlow))) {
 					return false;
 				}
 			}
@@ -135,15 +135,15 @@ public class Verifier extends AVerifier {
 					throw new RuntimeException("Unknown base value " + base);
 				}
 
-				Local base_local = (Local) base;
-				List <EventInitializer> inits = pointsTo.pointsTo(base_local);
+				Local baseLocal = (Local) base;
+				List <EventInitializer> inits = pointsTo.pointsTo(baseLocal);
 				Value time = invoke.getArg(0);
 
 				for (EventInitializer init : inits) {
-					List<NumericalStateWrapper> br_flow = analysis.getBranchFlowAfter(init.getStatement());
-					NumericalStateWrapper after_flow = analysis.getFallFlowAfter(init.getStatement());
+					List<NumericalStateWrapper> brFlow = analysis.getBranchFlowAfter(init.getStatement());
+					NumericalStateWrapper afterFlow = analysis.getFallFlowAfter(init.getStatement());
 
-					if (!(intValueDifference(init.start, time, after_flow))) {
+					if (!(intValueDifference(init.start, time, afterFlow))) {
 						return false;
 					}
 				}
@@ -168,46 +168,46 @@ public class Verifier extends AVerifier {
 					throw new RuntimeException("Unknown base value " + base);
 				}
 
-				Local base_local = (Local) base;
-				List <EventInitializer> inits = pointsTo.pointsTo(base_local);
+				Local baseLocal = (Local) base;
+				List <EventInitializer> inits = pointsTo.pointsTo(baseLocal);
 				Value time = invoke.getArg(0);
 
 				for (EventInitializer init : inits) {
-					List<NumericalStateWrapper> br_flow = analysis.getBranchFlowAfter(init.getStatement());
-					NumericalStateWrapper after_flow = analysis.getFallFlowAfter(init.getStatement());
+					List<NumericalStateWrapper> brFlow = analysis.getBranchFlowAfter(init.getStatement());
+					NumericalStateWrapper afterFlow = analysis.getFallFlowAfter(init.getStatement());
 
-					Abstract1 abstr = after_flow.get();
+					Abstract1 abstr = afterFlow.get();
 					Environment env = abstr.getEnvironment();
 					Manager man = abstr.getCreationManager();
 
 					Value end = init.getStatement().getInvokeExpr().getArg(1);
 
-					Texpr1Node time_node;	
-					Texpr1Node end_node;	
+					Texpr1Node timeNode;	
+					Texpr1Node endNode;	
 
 					if (time instanceof IntConstant) {
-						time_node = new Texpr1CstNode(new MpqScalar(((IntConstant) time).value));	
+						timeNode = new Texpr1CstNode(new MpqScalar(((IntConstant) time).value));	
 					} else if (time instanceof JimpleLocal) {
-						String time_name = ((JimpleLocal) time).getName();
-						time_node = new Texpr1VarNode(time_name);
+						String timeName = ((JimpleLocal) time).getName();
+						timeNode = new Texpr1VarNode(timeName);
 					} else {
 						throw new RuntimeException("Unknown time value " + time);
 					}
 
 					if (end instanceof IntConstant) {
-						end_node = new Texpr1CstNode(new MpqScalar(((IntConstant) end).value));	
+						endNode = new Texpr1CstNode(new MpqScalar(((IntConstant) end).value));	
 					} else if (end instanceof JimpleLocal) {
-						String end_name = ((JimpleLocal) end).getName();
-						end_node = new Texpr1VarNode(end_name);
+						String endName = ((JimpleLocal) end).getName();
+						endNode = new Texpr1VarNode(endName);
 					} else {
 						throw new RuntimeException("Unknown end value " + end);
 					}
 
 					// end - time
-					Texpr1Node end_minus_time = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, end_node, time_node);
+					Texpr1Node endMinusTime = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, endNode, timeNode);
 					
 					// 0 <= end - time
-					Tcons1 constraint = new Tcons1(env, Tcons1.SUPEQ, end_minus_time);
+					Tcons1 constraint = new Tcons1(env, Tcons1.SUPEQ, endMinusTime);
 
 					try {
 						if (!abstr.satisfy(man, constraint)) {
@@ -224,28 +224,26 @@ public class Verifier extends AVerifier {
 		return true;
 	}
 
-	// TODO: MAYBE FILL THIS OUT: add convenience methods
-
 	private boolean intValueDifference(int a, Value b, NumericalStateWrapper state) {
 		if (b instanceof IntConstant) {
-			int b_int = ((IntConstant) b).value;
+			int bInt = ((IntConstant) b).value;
 
-			return a <= b_int;
+			return a <= bInt;
 		} else if (b instanceof JimpleLocal) {
 			Abstract1 abstr = state.get();
 			Environment env = abstr.getEnvironment();
 			Manager man = abstr.getCreationManager();
 
-			String b_var = ((JimpleLocal) b).getName();
-			Texpr1Node b_node = new Texpr1VarNode(b_var);
+			String bVar = ((JimpleLocal) b).getName();
+			Texpr1Node bNode = new Texpr1VarNode(bVar);
 
-			Texpr1CstNode a_node =  new Texpr1CstNode(new MpqScalar(a));
+			Texpr1CstNode aNode =  new Texpr1CstNode(new MpqScalar(a));
 
 			// b - a
-			Texpr1Node b_minus_a = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, b_node, a_node);
+			Texpr1Node bMinusA = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, bNode, aNode);
 			
 			// 0 <= b - a
-			Tcons1 constraint = new Tcons1(env, Tcons1.SUPEQ, b_minus_a);
+			Tcons1 constraint = new Tcons1(env, Tcons1.SUPEQ, bMinusA);
 
 			try {
 				return abstr.satisfy(man, constraint);
@@ -254,7 +252,6 @@ public class Verifier extends AVerifier {
 			}
 
 		} else {
-			// TODO we have to support arrays? or other things?
 			throw new RuntimeException("Unknown end value " + b);
 		}
 	}

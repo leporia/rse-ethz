@@ -280,9 +280,9 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 				Value condition = ifStmt.getCondition();
 				Tcons1[] constrs = compileCondition(condition);
 				Tcons1 cons = constrs[0];
-				Tcons1 inv_cons = constrs[1];
+				Tcons1 invCons = constrs[1];
 				Abstract1 branchIn = new Abstract1(man, new Tcons1[]{cons});
-				Abstract1 branchOut = new Abstract1(man, new Tcons1[]{inv_cons});
+				Abstract1 branchOut = new Abstract1(man, new Tcons1[]{invCons});
 
 				// case if is false then skip
 				Abstract1 fallOut = fallOutWrapper.get();
@@ -344,37 +344,34 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 
 		Abstract1 curr = outWrapper.get();
 
-		String left_name = ((JimpleLocal) left).getName();
-		Texpr1Intern right_intern = new Texpr1Intern(env, compileExpression(right));
+		String leftName = ((JimpleLocal) left).getName();
+		Texpr1Intern rightIntern = new Texpr1Intern(env, compileExpression(right));
 
-		Abstract1 next = curr.assignCopy(man, left_name, right_intern, curr);
+		Abstract1 next = curr.assignCopy(man, leftName, rightIntern, curr);
 		outWrapper.set(next);
 	}
 
-	// TODO: MAYBE FILL THIS OUT: add convenience methods
-
 	private Texpr1Node compileExpression(Value expr) {
-		// TODO complete this
 		if (expr instanceof IntConstant) {
-			int int_value = ((IntConstant) expr).value;
-			return new Texpr1CstNode(new MpqScalar(int_value));
+			int intValue = ((IntConstant) expr).value;
+			return new Texpr1CstNode(new MpqScalar(intValue));
 		} else if (expr instanceof JimpleLocal) {
 			String name = ((JimpleLocal) expr).getName();
 			return new Texpr1VarNode(name);
 		} else if (expr instanceof JMulExpr) {
-			JMulExpr mul_expr = (JMulExpr) expr;
-			Texpr1Node op1 = compileExpression(mul_expr.getOp1());
-			Texpr1Node op2 = compileExpression(mul_expr.getOp2());
+			JMulExpr mulExpr = (JMulExpr) expr;
+			Texpr1Node op1 = compileExpression(mulExpr.getOp1());
+			Texpr1Node op2 = compileExpression(mulExpr.getOp2());
          	return new Texpr1BinNode(Texpr1BinNode.OP_MUL, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 		} else if (expr instanceof JAddExpr) {
-			JAddExpr add_expr = (JAddExpr) expr;
-			Texpr1Node op1 = compileExpression(add_expr.getOp1());
-			Texpr1Node op2 = compileExpression(add_expr.getOp2());
+			JAddExpr addExpr = (JAddExpr) expr;
+			Texpr1Node op1 = compileExpression(addExpr.getOp1());
+			Texpr1Node op2 = compileExpression(addExpr.getOp2());
 			return new Texpr1BinNode(Texpr1BinNode.OP_ADD, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 		} else if (expr instanceof JSubExpr) {
-			JSubExpr sub_expr = (JSubExpr) expr;
-			Texpr1Node op1 = compileExpression(sub_expr.getOp1());
-			Texpr1Node op2 = compileExpression(sub_expr.getOp2());
+			JSubExpr subExpr = (JSubExpr) expr;
+			Texpr1Node op1 = compileExpression(subExpr.getOp1());
+			Texpr1Node op2 = compileExpression(subExpr.getOp2());
 			return new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 		} else if (expr instanceof ParameterRef) {
 			// impossible because it is set to a local variable at the beginning
@@ -386,97 +383,96 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 
 	// return constrain and ~constrain in a size 2 array
 	private Tcons1[] compileCondition(Value expr) {
-		// TODO check if it puts = in the right places
 		if (expr instanceof JEqExpr) {
 			// a == b
-			JEqExpr eq_expr = (JEqExpr) expr;
-			Texpr1Node op1 = compileExpression(eq_expr.getOp1());
-			Texpr1Node op2 = compileExpression(eq_expr.getOp2());
+			JEqExpr eqExpr = (JEqExpr) expr;
+			Texpr1Node op1 = compileExpression(eqExpr.getOp1());
+			Texpr1Node op2 = compileExpression(eqExpr.getOp2());
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 
 			Tcons1 cons = new Tcons1(env, Tcons1.EQ, result);
-			Tcons1 inv_cons = new Tcons1(env, Tcons1.DISEQ, result);
+			Tcons1 invCons = new Tcons1(env, Tcons1.DISEQ, result);
 
-			return new Tcons1[] { cons, inv_cons };
+			return new Tcons1[] { cons, invCons };
 		} else if (expr instanceof JNeExpr) {
 			// a != b
-			JNeExpr ne_expr = (JNeExpr) expr;
-			Texpr1Node op1 = compileExpression(ne_expr.getOp1());
-			Texpr1Node op2 = compileExpression(ne_expr.getOp2());
+			JNeExpr neExpr = (JNeExpr) expr;
+			Texpr1Node op1 = compileExpression(neExpr.getOp1());
+			Texpr1Node op2 = compileExpression(neExpr.getOp2());
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 
 			Tcons1 cons = new Tcons1(env, Tcons1.DISEQ, result);
-			Tcons1 inv_cons = new Tcons1(env, Tcons1.EQ, result);
+			Tcons1 invCons = new Tcons1(env, Tcons1.EQ, result);
 
-			return new Tcons1[] { cons, inv_cons };
+			return new Tcons1[] { cons, invCons };
 		} else if (expr instanceof JGtExpr) {
 			// a > b
-			JGtExpr gt_expr = (JGtExpr) expr;
-			Texpr1Node op1 = compileExpression(gt_expr.getOp1());
-			Texpr1Node op2 = compileExpression(gt_expr.getOp2());
+			JGtExpr gtExpr = (JGtExpr) expr;
+			Texpr1Node op1 = compileExpression(gtExpr.getOp1());
+			Texpr1Node op2 = compileExpression(gtExpr.getOp2());
 
 			// a - b
 			// b - a
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
-			Texpr1Node inv_result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
+			Texpr1Node invResult = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
 
 			// a - b > 0
 			// 0 <= b -a
 			Tcons1 cons = new Tcons1(env, Tcons1.SUP, result);
-			Tcons1 inv_cons = new Tcons1(env, Tcons1.SUPEQ, inv_result);
+			Tcons1 invCons = new Tcons1(env, Tcons1.SUPEQ, invResult);
 
-			return new Tcons1[] { cons, inv_cons };
+			return new Tcons1[] { cons, invCons };
 		} else if (expr instanceof JGeExpr) {
 			// a >= b
-			JGeExpr ge_expr = (JGeExpr) expr;
-			Texpr1Node op1 = compileExpression(ge_expr.getOp1());
-			Texpr1Node op2 = compileExpression(ge_expr.getOp2());
+			JGeExpr geExpr = (JGeExpr) expr;
+			Texpr1Node op1 = compileExpression(geExpr.getOp1());
+			Texpr1Node op2 = compileExpression(geExpr.getOp2());
 
 			// a - b
 			// b - a
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
-			Texpr1Node inv_result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
+			Texpr1Node invResult = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
 
 			// a - b >= 0
 			// 0 < b - a
 			Tcons1 cons = new Tcons1(env, Tcons1.SUPEQ, result);
-			Tcons1 inv_cons = new Tcons1(env, Tcons1.SUP, inv_result);
+			Tcons1 invCons = new Tcons1(env, Tcons1.SUP, invResult);
 
-			return new Tcons1[] { cons, inv_cons };
+			return new Tcons1[] { cons, invCons };
 		} else if (expr instanceof JLtExpr) {
 			// a < b
-			JLtExpr lt_expr = (JLtExpr) expr;
-			Texpr1Node op1 = compileExpression(lt_expr.getOp1());
-			Texpr1Node op2 = compileExpression(lt_expr.getOp2());
+			JLtExpr ltExpr = (JLtExpr) expr;
+			Texpr1Node op1 = compileExpression(ltExpr.getOp1());
+			Texpr1Node op2 = compileExpression(ltExpr.getOp2());
 
 			// b - a
 			// a - b
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
-			Texpr1Node inv_result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+			Texpr1Node invResult = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 
 			// 0 < b - a
 			// a - b < 0
 			Tcons1 cons = new Tcons1(env, Tcons1.SUP, result);
-			Tcons1 inv_cons = new Tcons1(env, Tcons1.SUPEQ, inv_result);
+			Tcons1 invCons = new Tcons1(env, Tcons1.SUPEQ, invResult);
 
-			return new Tcons1[] { cons, inv_cons };
+			return new Tcons1[] { cons, invCons };
 		} else if (expr instanceof JLeExpr) {
 			// a <= b
-			JLeExpr le_expr = (JLeExpr) expr;
-			Texpr1Node op1 = compileExpression(le_expr.getOp1());
-			Texpr1Node op2 = compileExpression(le_expr.getOp2());
+			JLeExpr leExpr = (JLeExpr) expr;
+			Texpr1Node op1 = compileExpression(leExpr.getOp1());
+			Texpr1Node op2 = compileExpression(leExpr.getOp2());
 
 			// b - a
 			// a - b
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
-			Texpr1Node inv_result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+			Texpr1Node invResult = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 
 			// 0 <= b - a
 			// a - b > 0
 			Tcons1 cons = new Tcons1(env, Tcons1.SUPEQ, result);
-			Tcons1 inv_cons = new Tcons1(env, Tcons1.SUP, inv_result);
+			Tcons1 invCons = new Tcons1(env, Tcons1.SUP, invResult);
 
-			return new Tcons1[] { cons, inv_cons };
+			return new Tcons1[] { cons, invCons };
 		} else {
 			throw new RuntimeException("Unhandled condition: " + expr.toString());
 		}
