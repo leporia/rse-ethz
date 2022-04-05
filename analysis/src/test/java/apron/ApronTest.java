@@ -144,11 +144,6 @@ public class ApronTest {
 		// meet with constraint
 		Abstract1 myBottom = xy.meetCopy(man, constraint2);
 		Assertions.assertTrue(myBottom.isEqual(man, this.bottom));
-
-		// TODO: Note that some constraints are handled imprecisely in Apron,
-		// but can be expressed differently to improve precision. For example,
-		// instead of encoding x - y != 0, it is possible to encode "x - y > 0"
-		// and "x - y < 0", and combine these two cases appropriately.
     }
 
     /////////////////

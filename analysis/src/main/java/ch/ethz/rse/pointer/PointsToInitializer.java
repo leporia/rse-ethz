@@ -93,8 +93,7 @@ public class PointsToInitializer {
 						continue;
 					}
 
-					// TODO
-					// idk if this is the right way to get the node reference
+					// TODO idk if this is the right way to get the node reference
 					// probabily the right way is to get it directly from the object
 					if (!(specialInvokeExpr.getBase() instanceof Local)) {
 						throw new RuntimeException("Unexpected base class for special invoke expression: " + specialInvokeExpr);

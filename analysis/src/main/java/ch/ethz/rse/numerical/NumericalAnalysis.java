@@ -279,10 +279,15 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 				JIfStmt ifStmt = (JIfStmt) s;
 				Value condition = ifStmt.getCondition();
 				Tcons1[] constrs = compileCondition(condition);
-				Tcons1 cons = constrs[0];
-				Tcons1 invCons = constrs[1];
-				Abstract1 branchIn = new Abstract1(man, new Tcons1[]{cons});
-				Abstract1 branchOut = new Abstract1(man, new Tcons1[]{invCons});
+				Tcons1[] inCons = new Tcons1[]{ constrs[0] };
+
+				// if it is a not constrain
+				if (constrs.length == 3) {
+					inCons = new Tcons1[] { constrs[0], constrs[2] };
+				}
+
+				Abstract1 branchIn = new Abstract1(man, inCons);
+				Abstract1 branchOut = new Abstract1(man, new Tcons1[]{constrs[1]});
 
 				// case if is false then skip
 				Abstract1 fallOut = fallOutWrapper.get();
@@ -378,7 +383,7 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 		}
 	}
 
-	// return constrain and ~constrain in a size 2 array
+	// return constrain and ~constrain in a size 2 array (for the not expression create a size 3 array)
 	private Tcons1[] compileCondition(Value expr) {
 		if (expr instanceof JEqExpr) {
 			// a == b
@@ -393,15 +398,19 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			return new Tcons1[] { cons, invCons };
 		} else if (expr instanceof JNeExpr) {
 			// a != b
+			// encode as a - b > 0 and b - a > 0
 			JNeExpr neExpr = (JNeExpr) expr;
 			Texpr1Node op1 = compileExpression(neExpr.getOp1());
 			Texpr1Node op2 = compileExpression(neExpr.getOp2());
-			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+			Texpr1Node result1 = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+			Texpr1Node result2 = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
 
-			Tcons1 cons = new Tcons1(env, Tcons1.DISEQ, result);
-			Tcons1 invCons = new Tcons1(env, Tcons1.EQ, result);
+			Tcons1 cons1 = new Tcons1(env, Tcons1.SUP, result1);
+			Tcons1 cons2 = new Tcons1(env, Tcons1.SUP, result2);
 
-			return new Tcons1[] { cons, invCons };
+			Tcons1 invCons = new Tcons1(env, Tcons1.EQ, result1);
+
+			return new Tcons1[] { cons1, invCons, cons2 };
 		} else if (expr instanceof JGtExpr) {
 			// a > b
 			JGtExpr gtExpr = (JGtExpr) expr;
