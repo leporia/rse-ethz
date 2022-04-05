@@ -75,8 +75,6 @@ public class PointsToInitializer {
 				continue;
 			}
 
-			// TODO considerate also pointers to already initialized objects
-
 			// populate data structures perMethod and initializers
 			for (Unit u : method.getActiveBody().getUnits()) {
 				if (!(u instanceof JInvokeStmt)) {
@@ -118,7 +116,6 @@ public class PointsToInitializer {
 
 					// check is the right class
 					if (!(virtualInvokeExpr.getBase().getType().toString().equals(Constants.EventClassName))) {
-						logger.debug("is false");
 						continue;
 					}
 
