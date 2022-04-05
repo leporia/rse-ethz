@@ -373,9 +373,6 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			Texpr1Node op1 = compileExpression(subExpr.getOp1());
 			Texpr1Node op2 = compileExpression(subExpr.getOp2());
 			return new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
-		} else if (expr instanceof ParameterRef) {
-			// impossible because it is set to a local variable at the beginning
-			throw new RuntimeException("Impossible to be here");
 		} else {
 			throw new RuntimeException("Unhandled expression: " + expr.toString());
 		}

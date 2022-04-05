@@ -205,9 +205,11 @@ public class Verifier extends AVerifier {
 
 					// end - time
 					Texpr1Node endMinusTime = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, endNode, timeNode);
+					logger.debug(endMinusTime.toString());
 					
 					// 0 <= end - time
 					Tcons1 constraint = new Tcons1(env, Tcons1.SUPEQ, endMinusTime);
+					logger.debug(constraint.toString());
 
 					try {
 						if (!abstr.satisfy(man, constraint)) {
