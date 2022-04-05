@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.management.RuntimeErrorException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -191,7 +193,18 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 		// merge the two states from w1 and w2 and store the result into w3
 		logger.debug("in merge: " + succNode);
 
-		// TODO: FILL THIS OUT
+		// TODO not sure if this is correct
+		Abstract1 a1 = w1.get();
+		Abstract1 a2 = w2.get();
+
+		try {
+			a1.join(man, a2);
+		} catch (ApronException e) {
+			e.printStackTrace();
+			throw new RuntimeException("should not be here");
+		}
+
+		w3.set(a1);
 	}
 
 	@Override
@@ -263,11 +276,23 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			} else if (s instanceof JIfStmt) {
 				// handle if
 
-				// TODO: FILL THIS OUT
 				JIfStmt ifStmt = (JIfStmt) s;
 				Value condition = ifStmt.getCondition();
-				Tcons1 constr = compileCondition(condition);
-				logger.debug(constr.toString());
+				Tcons1[] constrs = compileCondition(condition);
+				Tcons1 cons = constrs[0];
+				Tcons1 inv_cons = constrs[1];
+				Abstract1 branchIn = new Abstract1(man, new Tcons1[]{cons});
+				Abstract1 branchOut = new Abstract1(man, new Tcons1[]{inv_cons});
+
+				// case if is false then skip
+				Abstract1 fallOut = fallOutWrapper.get();
+				fallOut.meet(man, branchOut);
+				fallOutWrapper.set(fallOut);
+
+				// case if is true then enter branch
+				Abstract1 branch = branchOutWrapper.get();
+				branch.meet(man, branchIn);
+				branchOutWrapper.set(branch);
 
 			} else if (s instanceof JInvokeStmt) {
 				// handle invocations
@@ -323,7 +348,6 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 		Texpr1Intern right_intern = new Texpr1Intern(env, compileExpression(right));
 
 		Abstract1 next = curr.assignCopy(man, left_name, right_intern, curr);
-
 		outWrapper.set(next);
 	}
 
@@ -360,7 +384,8 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 		}
 	}
 
-	private Tcons1 compileCondition(Value expr) {
+	// return constrain and ~constrain in a size 2 array
+	private Tcons1[] compileCondition(Value expr) {
 		// TODO check if it puts = in the right places
 		if (expr instanceof JEqExpr) {
 			// a == b
@@ -370,8 +395,9 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 
 			Tcons1 cons = new Tcons1(env, Tcons1.EQ, result);
+			Tcons1 inv_cons = new Tcons1(env, Tcons1.DISEQ, result);
 
-			return cons;
+			return new Tcons1[] { cons, inv_cons };
 		} else if (expr instanceof JNeExpr) {
 			// a != b
 			JNeExpr ne_expr = (JNeExpr) expr;
@@ -380,8 +406,9 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 
 			Tcons1 cons = new Tcons1(env, Tcons1.DISEQ, result);
+			Tcons1 inv_cons = new Tcons1(env, Tcons1.EQ, result);
 
-			return cons;
+			return new Tcons1[] { cons, inv_cons };
 		} else if (expr instanceof JGtExpr) {
 			// a > b
 			JGtExpr gt_expr = (JGtExpr) expr;
@@ -389,12 +416,16 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			Texpr1Node op2 = compileExpression(gt_expr.getOp2());
 
 			// a - b
+			// b - a
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+			Texpr1Node inv_result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
 
 			// a - b > 0
+			// 0 <= b -a
 			Tcons1 cons = new Tcons1(env, Tcons1.SUP, result);
+			Tcons1 inv_cons = new Tcons1(env, Tcons1.SUPEQ, inv_result);
 
-			return cons;
+			return new Tcons1[] { cons, inv_cons };
 		} else if (expr instanceof JGeExpr) {
 			// a >= b
 			JGeExpr ge_expr = (JGeExpr) expr;
@@ -402,12 +433,16 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			Texpr1Node op2 = compileExpression(ge_expr.getOp2());
 
 			// a - b
+			// b - a
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
+			Texpr1Node inv_result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
 
 			// a - b >= 0
+			// 0 < b - a
 			Tcons1 cons = new Tcons1(env, Tcons1.SUPEQ, result);
+			Tcons1 inv_cons = new Tcons1(env, Tcons1.SUP, inv_result);
 
-			return cons;
+			return new Tcons1[] { cons, inv_cons };
 		} else if (expr instanceof JLtExpr) {
 			// a < b
 			JLtExpr lt_expr = (JLtExpr) expr;
@@ -415,12 +450,16 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			Texpr1Node op2 = compileExpression(lt_expr.getOp2());
 
 			// b - a
+			// a - b
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
+			Texpr1Node inv_result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 
 			// 0 < b - a
+			// a - b < 0
 			Tcons1 cons = new Tcons1(env, Tcons1.SUP, result);
+			Tcons1 inv_cons = new Tcons1(env, Tcons1.SUPEQ, inv_result);
 
-			return cons;
+			return new Tcons1[] { cons, inv_cons };
 		} else if (expr instanceof JLeExpr) {
 			// a <= b
 			JLeExpr le_expr = (JLeExpr) expr;
@@ -428,12 +467,16 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 			Texpr1Node op2 = compileExpression(le_expr.getOp2());
 
 			// b - a
+			// a - b
 			Texpr1Node result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op2, op1);
+			Texpr1Node inv_result = new Texpr1BinNode(Texpr1BinNode.OP_SUB, Texpr1BinNode.RTYPE_INT, Texpr1BinNode.RDIR_ZERO, op1, op2);
 
 			// 0 <= b - a
+			// a - b > 0
 			Tcons1 cons = new Tcons1(env, Tcons1.SUPEQ, result);
+			Tcons1 inv_cons = new Tcons1(env, Tcons1.SUP, inv_result);
 
-			return cons;
+			return new Tcons1[] { cons, inv_cons };
 		} else {
 			throw new RuntimeException("Unhandled condition: " + expr.toString());
 		}
