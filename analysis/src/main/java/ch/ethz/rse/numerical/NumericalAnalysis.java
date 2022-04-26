@@ -117,6 +117,11 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 	private static final int WIDENING_THRESHOLD = 6;
 
 	/**
+	 * List of loops
+	 */
+	private HashSet<Loop> loops;
+
+	/**
 	 * 
 	 * @param method   method to analyze
 	 * @param property the property we are verifying
@@ -134,9 +139,12 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 
 		this.env = new EnvironmentGenerator(method, pointsTo).getEnvironment();
 
+		loops = new HashSet<Loop>();
+
 		// initialize counts for loop heads
 		for (Loop l : new LoopNestTree(g.getBody())) {
 			loopHeads.put(l.getHead(), new IntegerWrapper(0));
+			loops.add(l);
 		}
 
 		// perform analysis by calling into super-class
@@ -193,7 +201,6 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 		// merge the two states from w1 and w2 and store the result into w3
 		logger.debug("in merge: " + succNode);
 
-		// TODO not sure if this is correct
 		Abstract1 a1 = w1.get();
 		Abstract1 a2 = w2.get();
 
@@ -205,6 +212,49 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 		}
 
 		w3.set(a1);
+
+
+		Loop loop = null;
+
+		for (Loop l : loops) {
+			if (l.getLoopStatements().contains(succNode)) {
+				loop = l;
+				break;
+			}
+		}
+
+		if (loop == null) {
+			logger.debug("No loop found for " + succNode);
+			return;
+		}
+
+		logger.debug("Loop found for " + succNode);
+
+		Unit loopHead = loop.getHead();
+		// increase loophead for this unit
+		IntegerWrapper currentCount = loopHeads.get(loopHead);
+		currentCount.value = currentCount.value + 1;
+		loopHeads.put(loopHead, currentCount);
+
+		NumericalStateWrapper oldState = loopHeadState.get(loopHead);
+		loopHeadState.put(loopHead, w3);
+
+		if (currentCount.value < WIDENING_THRESHOLD) {
+			return;
+		}
+
+		Abstract1 widened = null;
+
+		// TODO user widening
+		logger.debug("WIDENING");
+		try {
+			widened = a1.widening(man, oldState.get());
+		} catch (ApronException e) {
+			e.printStackTrace();
+			throw new RuntimeException("should not be here");
+		}
+
+		w3.set(widened);
 	}
 
 	@Override
@@ -351,9 +401,9 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 
 		String leftName = ((JimpleLocal) left).getName();
 		Texpr1Intern rightIntern = new Texpr1Intern(env, compileExpression(right));
-
-		Abstract1 next = curr.assignCopy(man, leftName, rightIntern, curr);
-		outWrapper.set(next);
+		
+		curr.assign(man, leftName, rightIntern, null);
+		outWrapper.set(curr);
 	}
 
 	private Texpr1Node compileExpression(Value expr) {
