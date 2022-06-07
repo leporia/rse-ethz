@@ -105,7 +105,6 @@ public class Verifier extends AVerifier {
 			NumericalAnalysis analysis = this.numericalAnalysis.get(m);
 
 			for (EventInitializer init : pointsTo.getInitializers(m)) {
-				List<NumericalStateWrapper> brFlow = analysis.getBranchFlowAfter(init.getStatement());
 				NumericalStateWrapper afterFlow = analysis.getFallFlowAfter(init.getStatement());
 
 				Value end = init.getStatement().getInvokeExpr().getArg(1);
@@ -138,12 +137,38 @@ public class Verifier extends AVerifier {
 				Local baseLocal = (Local) base;
 				List <EventInitializer> inits = pointsTo.pointsTo(baseLocal);
 				Value time = invoke.getArg(0);
+				NumericalStateWrapper afterFlow = null;
+
+				for (Unit u : m.getActiveBody().getUnits()) {
+					if (!(u instanceof JInvokeStmt)) {
+						continue;
+					}
+
+					JInvokeStmt invokeStmt = (JInvokeStmt) u;
+					Value v = invokeStmt.getInvokeExpr();
+					if (!(v instanceof JVirtualInvokeExpr)) {
+						continue;
+					}
+					// it is a call to an object
+					JVirtualInvokeExpr virtualInvokeExpr = (JVirtualInvokeExpr) v;
+
+					if (!(virtualInvokeExpr.equals(invoke))) {
+						continue;
+					}
+
+					afterFlow = analysis.getFallFlowAfter(u);
+					break;
+				}
+
+				if (afterFlow == null) {
+					logger.debug("Could not find after flow for {}", invoke);
+					return false;
+				}
 
 				for (EventInitializer init : inits) {
-					List<NumericalStateWrapper> brFlow = analysis.getBranchFlowAfter(init.getStatement());
-					NumericalStateWrapper afterFlow = analysis.getFallFlowAfter(init.getStatement());
-
 					if (!(intValueDifference(init.start, time, afterFlow))) {
+						logger.debug(init.start + " " + time.toString() + " " + afterFlow.toString());
+						logger.debug(invoke.toString() + " failed!!");
 						return false;
 					}
 				}
@@ -172,10 +197,35 @@ public class Verifier extends AVerifier {
 				List <EventInitializer> inits = pointsTo.pointsTo(baseLocal);
 				Value time = invoke.getArg(0);
 
-				for (EventInitializer init : inits) {
-					List<NumericalStateWrapper> brFlow = analysis.getBranchFlowAfter(init.getStatement());
-					NumericalStateWrapper afterFlow = analysis.getFallFlowAfter(init.getStatement());
+				NumericalStateWrapper afterFlow = null;
 
+				for (Unit u : m.getActiveBody().getUnits()) {
+					if (!(u instanceof JInvokeStmt)) {
+						continue;
+					}
+
+					JInvokeStmt invokeStmt = (JInvokeStmt) u;
+					Value v = invokeStmt.getInvokeExpr();
+					if (!(v instanceof JVirtualInvokeExpr)) {
+						continue;
+					}
+					// it is a call to an object
+					JVirtualInvokeExpr virtualInvokeExpr = (JVirtualInvokeExpr) v;
+
+					if (!(virtualInvokeExpr.equals(invoke))) {
+						continue;
+					}
+
+					afterFlow = analysis.getFallFlowAfter(u);
+					break;
+				}
+
+				if (afterFlow == null) {
+					logger.debug("Could not find after flow for {}", invoke);
+					return false;
+				}
+
+				for (EventInitializer init : inits) {
 					Abstract1 abstr = afterFlow.get();
 					Environment env = abstr.getEnvironment();
 					Manager man = abstr.getCreationManager();
@@ -213,6 +263,7 @@ public class Verifier extends AVerifier {
 
 					try {
 						if (!abstr.satisfy(man, constraint)) {
+							logger.debug(invoke.toString() + " failed!!");
 							return false;
 						}
 					} catch (ApronException e) {

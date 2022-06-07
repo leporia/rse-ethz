@@ -21,9 +21,9 @@ public class SpecificExampleIT {
 	 */
 	@Test
 	void specificTest() {
-		String packageName = "ch.ethz.rse.integration.tests.Widening_Test_Unsafe";
+		String packageName = "ch.ethz.rse.integration.tests.For_loop_Safe";
 		VerificationProperty verificationTask = VerificationProperty.BEFORE_END;
-		boolean expectedIsSafe = false;
+		boolean expectedIsSafe = true;
 		VerificationTestCase t = new VerificationTestCase(packageName, verificationTask, expectedIsSafe);
 		SpecificExampleIT.testOnExample(t);
 	}

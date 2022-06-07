@@ -245,7 +245,6 @@ public class NumericalAnalysis extends ForwardBranchedFlowAnalysis<NumericalStat
 
 		Abstract1 widened = null;
 
-		// TODO user widening
 		logger.debug("WIDENING");
 		try {
 			widened = a1.widening(man, oldState.get());
