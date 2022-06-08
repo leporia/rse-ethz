@@ -22,7 +22,7 @@ import org.apache.commons.io.FilenameUtils;
  * Test the code on all provided examples
  * 
  */
-public class AllExamplesIT_Error {
+public class AllExamplesErrorIT {
 
 	/**
 	 * 
